@@ -56,6 +56,6 @@ void main() {
 
 	frag_color.rgb += calcSpecularShading(normalize(vec3(NM * vec4(normal, 1.0))), light_direction).rgb * shinyness;
 
-	// 				frag_color.rgb *= snoise(vec2(color.r, color.b));
+	//frag_color.rgb *= snoise(vec2(color.r, color.b));
 
 }

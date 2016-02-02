@@ -31,6 +31,14 @@ public:
     
     void resetCamera();
 
+    void setLightColor(glm::vec4 c) { mPointLight.color = c; }
+
+    void setLightPos(glm::vec3 p) { mPointLight.position = p; }
+
+    int getNumGeometries() { return mGeometries.size(); }
+
+    Geometry* getGeometryAt(unsigned int i) { return mGeometries[i]; }
+
 private:
 
 	glm::mat4 mProjectionMatrix;

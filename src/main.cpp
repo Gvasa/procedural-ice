@@ -1,8 +1,12 @@
 #include <sstream>
 #include <istream>
+#include <string>
 #include <math.h>
 
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <cstdlib>
+#include <ctime>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -19,28 +23,30 @@ double calculateFPS(double, std::string);
 void mouseButton(GLFWwindow* window, int button, int andction, int mods);
 void mouseMotion(GLFWwindow* window, double x, double y);
 void mouseScroll(GLFWwindow* window, double x, double y);
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+void charCallback(GLFWwindow* window, unsigned int codepoint);
 
 // pointer objects
 GLFWwindow * window = nullptr;
 nanogui::Screen * screen = nullptr;
+nanogui::ColorWheel * cWheel = nullptr;
+nanogui::ColorWheel * lWheel = nullptr;
+nanogui::Slider * aSlider = nullptr;
+nanogui::Slider * xSlider = nullptr;
+nanogui::Slider * ySlider = nullptr;
+nanogui::Slider * zSlider = nullptr;
 
 Scene * scene = nullptr;
 Geometry * geometry = nullptr;
+Geometry * geometry2 = nullptr;
+unsigned int currentObj = 0;
 
 // global variables
 std::string windowTitle = "Procedural";
 
-// constants
-
-
-bool bvar = true;
-int ivar = 12345678;
-double dvar = 3.1415926;
-float fvar = (float)dvar;
-std::string strval = "A string";
-
-
 int main() {
+
+    srand(time(0));
 
     // magic
     glewExperimental = GL_TRUE;
@@ -49,9 +55,7 @@ int main() {
     if(initializeOpenGL() == -1)
         return -1;
 
-    //init nanogui
-    if(!initGUI() )
-        return false;
+  
 
     // Create scene here.
     scene = new Scene();
@@ -59,16 +63,26 @@ int main() {
 
     geometry = new Geometry();
     geometry->loadObject("cube");
-    //geometry->translate(glm::vec3(0.5f, -1.0f, 0.0f));
+
+    geometry2 = new Geometry();
+    geometry2->loadObject("cube");
+    geometry2->scale(glm::vec3(1.001f, 1.001f, 1.001f));
+    geometry2->setColor(glm::vec4(0.76f, 0.5f, 0.4f, 0.5f));
    
     scene->addGeometry(geometry);
+    scene->addGeometry(geometry2);
     scene->initialize();
 
+      //init nanogui
+    if(!initGUI() )
+        return false;
 
     //set mouse handlers
     glfwSetMouseButtonCallback(window, mouseButton);
     glfwSetCursorPosCallback(window, mouseMotion);
     glfwSetScrollCallback(window, mouseScroll);
+    glfwSetKeyCallback(window, keyCallback);
+    glfwSetCharCallback(window, charCallback);
 
     // render-loop
     do {
@@ -76,7 +90,10 @@ int main() {
            
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        
+        scene->getGeometryAt(currentObj)->setColor(glm::vec4(cWheel->color().r(), cWheel->color().g(), cWheel->color().b(), aSlider->value()));
+        scene->setLightColor(glm::vec4(lWheel->color().r(), lWheel->color().g(), lWheel->color().b(), 1.0f));
+        
         // render scene
         scene->render();
 
@@ -140,23 +157,98 @@ int initializeOpenGL() {
 bool initGUI() {
     nanogui::init();
 
+    nanogui::PopupButton * popupBtn;
+    nanogui::PopupButton * objPopupBtn;
+    nanogui::Popup * popup;
+    nanogui::Popup * objPopup;
+    nanogui::Button * colorBtn;
+    nanogui::Button * objBtn;
+
     screen = new nanogui::Screen();
     screen->initialize(window, true);   
     
-    nanogui::FormHelper *gui = new nanogui::FormHelper(screen);
-    gui->addWindow(Eigen::Vector2i(15, 15), "formhelper");
+    // Geometry window
+    nanogui::Window * gWindow = new nanogui::Window(screen, "Geometry settings");
+    gWindow->setPosition(Eigen::Vector2i(15, 40));
 
-    gui->addGroup("Basic types");
-    gui->addVariable("bool", bvar);
-    gui->addVariable("string", strval);
+    nanogui::GridLayout * layout = new nanogui::GridLayout(nanogui::Orientation::Horizontal, 2, nanogui::Alignment::Middle, 15, 5);
+    layout->setColAlignment( { nanogui::Alignment::Maximum, nanogui::Alignment::Fill });
+    layout->setSpacing(0, 10);
+    gWindow->setLayout(layout);
 
-    gui->addGroup("Validating fields");
-    gui->addVariable("int", ivar);
-    gui->addVariable("float", fvar);
-    gui->addVariable("double", dvar);
+    new nanogui::Label(gWindow, "object", "sans-bold");
+    objPopupBtn = new nanogui::PopupButton(gWindow, "Choose Object");
+    objPopupBtn->setFixedSize(Eigen::Vector2i(100, 25));
+    objPopup = objPopupBtn->popup();
+    objPopup->setLayout(new nanogui::GroupLayout());
 
-    gui->addGroup("Other widgets");
-    gui->addButton("A button", [](){ std::cout << "Button pressed." << std::endl; });
+    new nanogui::Label(gWindow, "color", "sans-bold");
+    
+    popupBtn = new nanogui::PopupButton(gWindow, "", 0);
+    popupBtn->setBackgroundColor(nanogui::Color(255, 0, 0, 255));
+    popupBtn->setFontSize(16);
+    popupBtn->setFixedSize(Eigen::Vector2i(100, 20));
+    popup = popupBtn->popup();
+    popup->setLayout(new nanogui::GroupLayout());
+
+    cWheel = new nanogui::ColorWheel(popup);
+
+    colorBtn = new nanogui::Button(popup, "Choose color");
+    colorBtn->setFixedSize(Eigen::Vector2i(100, 25));
+
+    colorBtn->setChangeCallback([colorBtn, popupBtn](bool pushed) {
+        if(pushed) {
+            popupBtn->setBackgroundColor(cWheel->color());
+            popupBtn->setPushed(false);
+        }
+    });
+
+    new nanogui::Label(gWindow, "Alpha", "sans");
+    aSlider = new nanogui::Slider(gWindow);
+    aSlider->setValue(1.0f);
+
+
+    //SET CALLBACKS AFTER CHWHEEL AND SLIDER HAS BEEN INITED!
+    for(unsigned int i = 0; i < scene->getNumGeometries(); i++) {
+        objBtn = new nanogui::Button(objPopup, "Object" + std::to_string(i+1));
+        objBtn->setFixedSize(Eigen::Vector2i(100, 25));
+
+        objBtn->setChangeCallback([objBtn, objPopupBtn, i, popupBtn](bool pushed) {
+            if(pushed) {
+                currentObj = i;
+                glm::vec4 color = scene->getGeometryAt(currentObj)->getColor();
+                cWheel->setColor(nanogui::Color(color[0], color[1], color[2], color[3]));
+                popupBtn->setBackgroundColor(cWheel->color());
+                aSlider->setValue(color[3]);
+                objPopupBtn->setPushed(false);
+            }
+        });
+    }
+
+    // Light window
+    nanogui::Window * lWindow = new nanogui::Window(screen, "Light settings");
+    lWindow->setPosition(Eigen::Vector2i(15, 180));
+    lWindow->setLayout(layout);
+
+    new nanogui::Label(lWindow, "color", "sans-bold");
+    popupBtn = new nanogui::PopupButton(lWindow, "", 0);
+    popupBtn->setBackgroundColor(nanogui::Color(255, 255, 255, 255));
+    popupBtn->setFontSize(16);
+    popupBtn->setFixedSize(Eigen::Vector2i(100, 20));
+    popup = popupBtn->popup();
+    popup->setLayout(new nanogui::GroupLayout());
+
+    lWheel = new nanogui::ColorWheel(popup);
+    lWheel->setColor(nanogui::Color(255, 255, 255, 255));
+
+    colorBtn = new nanogui::Button(popup, "Choose color");
+    colorBtn->setFixedSize(Eigen::Vector2i(100, 25));
+
+    colorBtn->setChangeCallback([colorBtn, popupBtn](bool pushed) {
+        if(pushed)
+            popupBtn->setBackgroundColor(lWheel->color());
+            popupBtn->setPushed(false);
+    });
 
     screen->setVisible(true);
     screen->performLayout();
@@ -228,23 +320,24 @@ double calculateFPS(double timeInterval = 1.0, std::string windowTitle = "NONE")
 
 // Function that handles input from mouse, sends the position to scene 
 void mouseButton(GLFWwindow* window, int button, int action, int mods) {
-    if(button != GLFW_MOUSE_BUTTON_LEFT)
-        return;
 
-    screen->mouseButtonCallbackEvent(button, action, mods);
+    //check if we are interacting with a nano gui object
+    if(!screen->mouseButtonCallbackEvent(button, action, mods)) {
 
-    switch(action) {
-        case GLFW_PRESS:
-            double x, y;
-            glfwGetCursorPos(window, &x, &y);
-            scene->mouseButtonClick(x, y);
-            break;
-        case GLFW_RELEASE:
-            scene->mouseButtonRelease();
-            break;
-        default:
-            break;
-    }
+        //if not treat the click as a click for the trackball camera
+        switch(action) {
+            case GLFW_PRESS:
+                double x, y;
+                glfwGetCursorPos(window, &x, &y);
+                scene->mouseButtonClick(x, y);
+                break;
+            case GLFW_RELEASE:
+                scene->mouseButtonRelease();
+                break;
+            default:
+                break;
+        }
+    } 
 }
 
 // handles mouse movement, send updated positions to the scene
@@ -254,5 +347,14 @@ void mouseMotion(GLFWwindow* window, double x, double y) {
 }
 
 void mouseScroll(GLFWwindow* window, double x, double y) {
-    scene->updateCameraZoom(x, y);
+    if(!screen->scrollCallbackEvent(x, y))
+        scene->updateCameraZoom(x, y);
+}
+
+void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+    screen->keyCallbackEvent(key, scancode, action, mods);
+}
+
+void charCallback(GLFWwindow* window, unsigned int codepoint) {
+    screen->charCallbackEvent(codepoint);
 }

@@ -14,16 +14,15 @@ Scene::~Scene() {
 void Scene::initialize() {
 	
 	//Lightsource parameters    
-    mPointLight.position = glm::vec3(4.0f, 0.0f, 4.0f);
+    mPointLight.position = glm::vec3(0.0f, 2.0f, 2.0f);
     mPointLight.color = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
     glClearColor(0.2f, 0.2f, 0.2f, 0.0);
 
     for(std::vector<Geometry *>::iterator it = mGeometries.begin(); it != mGeometries.end(); ++it)
-    	(*it)->initialize(mPointLight.position);
+    	(*it)->initialize(mPointLight.position, mPointLight.color);
 
     mSceneMatrices.resize(4);
-
 }
 
 void Scene::render() {
@@ -65,7 +64,7 @@ void Scene::render() {
 
 
 	for(std::vector<Geometry *>::iterator it = mGeometries.begin(); it != mGeometries.end(); ++it)
-		(*it)->render(mSceneMatrices);
+		(*it)->render(mSceneMatrices, mPointLight.position, mPointLight.color);
 
 	glDisable( GL_BLEND );
 	glDisable( GL_DEPTH_TEST );

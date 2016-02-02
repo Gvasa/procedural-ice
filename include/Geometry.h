@@ -21,7 +21,6 @@
 #include "../include/ObjectLoader.h"
 #include <GLFW/glfw3.h>
 
-
 class Geometry {
 
 public:
@@ -30,13 +29,27 @@ public:
 
     ~Geometry();
 
-    void initialize(glm::vec3);
+    void initialize(glm::vec3, glm::vec4);
 
-    void render(std::vector<glm::mat4>);
+    void render(std::vector<glm::mat4>, glm::vec3, glm::vec4);
 
     void loadObject(std::string);
 
     void translate(glm::vec3);
+
+    void scale(glm::vec3);
+
+    void setColor(glm::vec4 c) { mMaterial.color = c; }
+
+    glm::vec4 getColor() { return mMaterial.color; }
+
+    void initializePhongShader();
+
+    void initializeFrostShader();
+
+    void setPhongShader() { shaderProgram = phongShader; }
+
+    void setFrostShader() { shaderProgram = frostShader; }
 
 private:
 
@@ -44,11 +57,14 @@ private:
     GLuint vertexArrayID;
     GLuint vertexBuffer;
     GLuint normalBuffer;
-    GLuint shaderProgram;
-    GLuint shaderTextureProgram;
     GLuint frameBufferID;
     GLuint renderedTexture;
     GLuint depthrenderBufferID;
+
+    GLuint shaderProgram;
+    GLuint phongShader;
+    GLuint frostShader;
+    GLuint shaderTextureProgram;
 
     // Shader indices for Matrices
     GLint MVPLoc;           // MVP matrix
@@ -56,6 +72,7 @@ private:
     GLint MVLightLoc;       // MVLight matrix
     GLint NMLoc;            // NM matrix
     GLint lightPosLoc;      // Light position
+    GLint lightColLoc;      // Light Color
     GLint colorLoc;         // Color
     GLint lightAmbLoc;      // Ambient light
     GLint lightDifLoc;      // Diffuse light
@@ -70,6 +87,7 @@ private:
 	std::vector<glm::vec3> mNormals;
 
 	glm::vec3 mLightPos;
+	glm::vec4 mLightColor;
 
 	ObjectLoader * mObjectLoader = new ObjectLoader();
 
