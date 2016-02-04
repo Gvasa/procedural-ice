@@ -2,12 +2,12 @@
 
 Geometry::Geometry() {
 
-	mMaterial.color 		= glm::vec4(0.9f, 0.3f, 0.3f, 0.9f);
-  	mMaterial.ambient       = glm::vec4(0.3f, 0.3f, 0.3f, 1.0f);
-    mMaterial.diffuse       = glm::vec4(0.8f, 0.8f, 0.8f, 1.0f);
-    mMaterial.specular      = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-    mMaterial.specularity   = 50.0f;
-    mMaterial.shinyness     = 0.9f;
+    mMaterial.diffuseColor      = glm::vec3(0.8f, 0.8f, 0.8f);
+    mMaterial.ambientColor      = mMaterial.diffuseColor * 0.1f;
+    mMaterial.specularColor     = glm::vec3(1.0f, 1.0f, 1.0f);
+    mMaterial.alpha				= 1.0f;
+    mMaterial.specularity   	= 40.0f;
+    mMaterial.shinyness    	 	= 0.9f;
 }
 
 Geometry::~Geometry() {
@@ -20,7 +20,7 @@ Geometry::~Geometry() {
     mVerts.shrink_to_fit();
 }
 
-void Geometry::initialize(glm::vec3 lightPos, glm::vec4 lightColor) {
+void Geometry::initialize(glm::vec3 lightPos, glm::vec3 lightColor, glm::vec3 cameraPos) {
 
 	mLightPos = lightPos;
 	mLightColor = lightColor;
@@ -30,29 +30,28 @@ void Geometry::initialize(glm::vec3 lightPos, glm::vec4 lightColor) {
 	glGenVertexArrays(1, &vertexArrayID);
 	glBindVertexArray(vertexArrayID);
 
-	//shaderProgram = LoadShaders( "shaders/SimpleVertexShader.glsl", "shaders/SimpleFragmentShader.glsl");
-	//shaderTextureProgram = LoadShaders( "shaders/SimpleFragmentShader.glsl", "shaders/SimpleTextureShader.glsl");
-/*	frostShader = LoadShaders( "shaders/FrostVertexShader.glsl", "shaders/FrostFragmentShader.glsl");
 	phongShader = LoadShaders( "shaders/PhongVertexShader.glsl", "shaders/PhongFragmentShader.glsl");
-
-	//set names for tour uniforms, these names has to be the same as in the sahders
-	MVPLoc 			= glGetUniformLocation(shaderProgram, "MVP");
-	MVLoc 			= glGetUniformLocation(shaderProgram, "MV");
-	MVLightLoc 		= glGetUniformLocation(shaderProgram, "MV_light");
-	NMLoc 			= glGetUniformLocation(shaderProgram, "NM");
-	lightPosLoc 	= glGetUniformLocation(shaderProgram, "lightPos");
-	lightColLoc 	= glGetUniformLocation(shaderProgram, "lightColor");
-	colorLoc 		= glGetUniformLocation(shaderProgram, "color");
-	lightAmbLoc 	= glGetUniformLocation(shaderProgram, "lightAmb");
-	lightDifLoc 	= glGetUniformLocation(shaderProgram, "lightDif");
-	lightSpecLoc 	= glGetUniformLocation(shaderProgram, "lightSpec");
-	specularityLoc 	= glGetUniformLocation(shaderProgram, "specularity");
-	shinynessLoc 	= glGetUniformLocation(shaderProgram, "shinyness");
-	timeLoc		 	= glGetUniformLocation(shaderProgram, "currTime");
-	texID   		= glGetUniformLocation(shaderProgram, "renderedTexture");*/
-
-	initializePhongShader();
-	initializeFrostShader();
+	//frostShader = LoadShaders( "shaders/FrostVertexShader.glsl", "shaders/FrostFragmentShader.glsl");
+		//set names for tour uniforms, these names has to be the same as in the sahders
+	MVPLoc 			= glGetUniformLocation(phongShader, "MVP");
+	MVLoc 			= glGetUniformLocation(phongShader, "MV");
+	MLoc 			= glGetUniformLocation(phongShader, "M");
+	VLoc 			= glGetUniformLocation(phongShader, "V");
+ 	MVLightLoc 		= glGetUniformLocation(phongShader, "MV_light");
+	NMLoc 			= glGetUniformLocation(phongShader, "NM");
+	cameraPosLoc	= glGetUniformLocation(phongShader, "cameraPosition");
+	lightPosLoc 	= glGetUniformLocation(phongShader, "lightPosition");
+	lightColLoc 	= glGetUniformLocation(phongShader, "lightColor");
+	lightPowerLoc	= glGetUniformLocation(phongShader, "lightPower");
+	ambienceLoc 	= glGetUniformLocation(phongShader, "ambientColor");
+	diffuseLoc 		= glGetUniformLocation(phongShader, "diffuseColor");
+	specularLoc 	= glGetUniformLocation(phongShader, "specularColor");
+	alphaLoc		= glGetUniformLocation(phongShader, "alpha");
+	specularityLoc 	= glGetUniformLocation(phongShader, "specularity");
+	shinynessLoc 	= glGetUniformLocation(phongShader, "shinyness");
+	timeLoc		 	= glGetUniformLocation(phongShader, "currTime");
+		
+	glUniform3f(cameraPosLoc, cameraPos[0], cameraPos[1], cameraPos[2]);
 
 	glGenBuffers(1, &vertexBuffer);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
@@ -87,22 +86,105 @@ void Geometry::initialize(glm::vec3 lightPos, glm::vec4 lightColor) {
 
 
 	shaderProgram = phongShader;
+	//shaderProgram = frostShader;
 
 	std::cout << "\nGeometry Initialized! \n " << std::endl;
 
 }
 	
-void Geometry::render(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, glm::vec4 lightColor) {
+void Geometry::render(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, glm::vec3 lightColor, float lightPower) {
     
  /*  glUseProgram(shaderTextureProgram);
 	glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
 	glViewport(0,0,1024,768); // Render on the whole framebuffer, complete from the lower left corner to the upper right
-*/		
-	mLightColor = lightColor;
+*/	
+	mLightPos = lightPos;
+ 	mLightColor = lightColor;
 
+	if(shaderProgram == phongShader) {
+		renderPhong(sceneMatrices, lightPos, lightColor, lightPower);
+	}
+	else {
+		renderFrost(sceneMatrices, lightPos, lightColor);
+	}
 	//std::cout << " lightColor: " << lightColor[0] << " " << lightColor[1] << " " << lightColor[2] << " " << lightColor[3] << " " << std::endl;
 
-    //set which shader to use
+
+}
+
+void Geometry::renderPhong(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, glm::vec3 lightColor, float lightPower) {
+
+	 //set which shader to use
+
+
+	glUseProgram(shaderProgram);
+	glEnable( GL_CULL_FACE );
+	glEnable( GL_DEPTH_TEST );
+	glEnable( GL_BLEND );
+    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+    
+	glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &sceneMatrices[I_MVP][0][0]);
+	glUniformMatrix4fv(MVLoc, 1, GL_FALSE, &sceneMatrices[I_MV][0][0]);
+	glUniformMatrix4fv(MLoc, 1, GL_FALSE, &sceneMatrices[I_M][0][0]);
+	glUniformMatrix4fv(VLoc, 1, GL_FALSE, &sceneMatrices[I_V][0][0]);
+	glUniformMatrix4fv(MVLightLoc, 1, GL_FALSE, &sceneMatrices[I_MV_LIGHT][0][0]);
+	glUniformMatrix4fv(NMLoc, 1, GL_FALSE, &sceneMatrices[I_NM][0][0]);
+	glUniform3f(lightPosLoc, mLightPos[0], mLightPos[1], mLightPos[2]);
+	glUniform3f(lightColLoc, mLightColor[0], mLightColor[1], mLightColor[2]);
+	glUniform1f(lightPowerLoc, lightPower);
+	glUniform3f(ambienceLoc, mMaterial.ambientColor[0], mMaterial.ambientColor[1], mMaterial.ambientColor[2]);
+	glUniform3f(diffuseLoc, mMaterial.diffuseColor[0], mMaterial.diffuseColor[1], mMaterial.diffuseColor[2]);
+	glUniform3f(specularLoc, mMaterial.specularColor[0], mMaterial.specularColor[1], mMaterial.specularColor[2]);
+	glUniform1f(alphaLoc, mMaterial.alpha);
+	glUniform1f(specularityLoc, mMaterial.specularity);
+	glUniform1f(shinynessLoc, mMaterial.shinyness);
+	glUniform1f(timeLoc, glfwGetTime());
+
+		//rebind buffer data
+	glBindVertexArray(vertexArrayID);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, mVerts.size() * sizeof(glm::vec3), &mVerts[0], GL_STATIC_DRAW);
+
+  	glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
+   	glBufferData(GL_ARRAY_BUFFER, mNormals.size() * sizeof(glm::vec3), &mNormals[0], GL_STATIC_DRAW);
+
+    glDrawArrays(GL_TRIANGLES, 0, mVerts.size());
+
+    // Unbind
+    glBindVertexArray(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glDisableVertexAttribArray(0);
+
+
+    glDisable( GL_BLEND );
+    glDisable( GL_DEPTH_TEST );
+    glDisable( GL_CULL_FACE );
+
+}
+
+
+void Geometry::renderFrost(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, glm::vec3 lightColor) {
+	/*
+
+
+	//set names for tour uniforms, these names has to be the same as in the sahders
+	MVPLoc 			= glGetUniformLocation(frostShader, "MVP");
+	MVLoc 			= glGetUniformLocation(frostShader, "MV");
+	MVLightLoc 		= glGetUniformLocation(frostShader, "MV_light");
+	NMLoc 			= glGetUniformLocation(frostShader, "NM");
+	lightPosLoc 	= glGetUniformLocation(frostShader, "lightPos");
+	lightColLoc 	= glGetUniformLocation(frostShader, "lightColor");
+	colorLoc 		= glGetUniformLocation(frostShader,	 "color");
+	lightAmbLoc 	= glGetUniformLocation(frostShader, "lightAmb");
+	lightDifLoc 	= glGetUniformLocation(frostShader, "lightDif");
+	lightSpecLoc 	= glGetUniformLocation(frostShader, "lightSpec");
+	specularityLoc 	= glGetUniformLocation(frostShader, "specularity");
+	shinynessLoc 	= glGetUniformLocation(frostShader, "shinyness");
+	timeLoc		 	= glGetUniformLocation(frostShader, "currTime");
+	texID   		= glGetUniformLocation(frostShader, "renderedTexture");
+	MVPLoc 			= glGetUniformLocation(frostShader, "MVP");
+	colorLoc 		= glGetUniformLocation(frostShader, "color");
+	 //set which shader to use
 	glUseProgram(shaderProgram);
 	glEnable( GL_BLEND );
     glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
@@ -121,15 +203,13 @@ void Geometry::render(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, 
 	glUniform1f(shinynessLoc, mMaterial.shinyness);
 	glUniform1f(timeLoc, glfwGetTime());
 
-
-
-	//rebind buffer data
+		//rebind buffer data
 	glBindVertexArray(vertexArrayID);
 	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 	glBufferData(GL_ARRAY_BUFFER, mVerts.size() * sizeof(glm::vec3), &mVerts[0], GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
-    glBufferData(GL_ARRAY_BUFFER, mNormals.size() * sizeof(glm::vec3), &mNormals[0], GL_STATIC_DRAW);
+  	glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
+   	glBufferData(GL_ARRAY_BUFFER, mNormals.size() * sizeof(glm::vec3), &mNormals[0], GL_STATIC_DRAW);
 
     glDrawArrays(GL_TRIANGLES, 0, mVerts.size());
 
@@ -138,13 +218,12 @@ void Geometry::render(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(0);
 
-    glDisable( GL_BLEND );
-
+    glDisable( GL_BLEND );*/
 }
 
 void Geometry::loadObject(std::string objPath) {
-	 //bool res = mObjectLoader->loadObject(objPath, mVerts, mNormals);
-	bool res = mObjectLoader->loadObject(objPath, mVerts, mUvs, mNormals);
+	bool res = mObjectLoader->loadObject(objPath, mVerts, mNormals);
+	//bool res = mObjectLoader->loadObject(objPath, mVerts, mUvs, mNormals);
 }
 
 void Geometry::translate(glm::vec3 p) {
@@ -176,48 +255,4 @@ void Geometry::scale(glm::vec3 s){
         tmpVec = scalingMatrix * tmpVec;
         mVerts[i] = glm::vec3(tmpVec.x, tmpVec.y, tmpVec.z);
     }
-}
-
-void Geometry::initializePhongShader() {
-
-	phongShader = LoadShaders( "shaders/PhongVertexShader.glsl", "shaders/PhongFragmentShader.glsl");
-
-	//set names for tour uniforms, these names has to be the same as in the sahders
-	MVPLoc 			= glGetUniformLocation(phongShader, "MVP");
-	MVLoc 			= glGetUniformLocation(phongShader, "MV");
-	MVLightLoc 		= glGetUniformLocation(phongShader, "MV_light");
-	NMLoc 			= glGetUniformLocation(phongShader, "NM");
-	lightPosLoc 	= glGetUniformLocation(phongShader, "lightPos");
-	lightColLoc 	= glGetUniformLocation(phongShader, "lightColor");
-	colorLoc 		= glGetUniformLocation(phongShader, "color");
-	lightAmbLoc 	= glGetUniformLocation(phongShader, "lightAmb");
-	lightDifLoc 	= glGetUniformLocation(phongShader, "lightDif");
-	lightSpecLoc 	= glGetUniformLocation(phongShader, "lightSpec");
-	specularityLoc 	= glGetUniformLocation(phongShader, "specularity");
-	shinynessLoc 	= glGetUniformLocation(phongShader, "shinyness");
-	timeLoc		 	= glGetUniformLocation(phongShader, "currTime");
-	texID   		= glGetUniformLocation(phongShader, "renderedTexture");
-
-}
-
-void Geometry::initializeFrostShader() {
-
-	frostShader = LoadShaders( "shaders/FrostVertexShader.glsl", "shaders/FrostFragmentShader.glsl");
-
-	//set names for tour uniforms, these names has to be the same as in the sahders
-	MVPLoc 			= glGetUniformLocation(frostShader, "MVP");
-	MVLoc 			= glGetUniformLocation(frostShader, "MV");
-	MVLightLoc 		= glGetUniformLocation(frostShader, "MV_light");
-	NMLoc 			= glGetUniformLocation(frostShader, "NM");
-	lightPosLoc 	= glGetUniformLocation(frostShader, "lightPos");
-	lightColLoc 	= glGetUniformLocation(frostShader, "lightColor");
-	colorLoc 		= glGetUniformLocation(frostShader, "color");
-	lightAmbLoc 	= glGetUniformLocation(frostShader, "lightAmb");
-	lightDifLoc 	= glGetUniformLocation(frostShader, "lightDif");
-	lightSpecLoc 	= glGetUniformLocation(frostShader, "lightSpec");
-	specularityLoc 	= glGetUniformLocation(frostShader, "specularity");
-	shinynessLoc 	= glGetUniformLocation(frostShader, "shinyness");
-	timeLoc		 	= glGetUniformLocation(frostShader, "currTime");
-	texID   		= glGetUniformLocation(frostShader, "renderedTexture");
-
 }

@@ -1,61 +1,71 @@
 #version 330 core
 
-uniform mat4 NM;
-uniform vec4 color;
-uniform vec4 lightAmb;
-uniform vec4 lightDif;
-uniform vec4 lightSpec;
-uniform vec4 lightColor;
-uniform float specularity;
-uniform float shinyness;
+// basic shading fragment shader, Heavily influenced by opengl tutorial shading
 
-in vec3 normal;
-in vec3 v;
-in vec3 light_direction;
+uniform mat4 MVP;
+uniform mat4 MV;
+uniform vec3 lightPosition;
+uniform vec3 lightColor;
+uniform float lightPower;
+uniform vec3 ambientColor;
+uniform vec3 diffuseColor;
+uniform vec3 specularColor;
+uniform vec3 cameraPosition;
+uniform float alpha;
 
-out vec4 frag_color;
-
-vec4 calcShading( vec3 N, vec3 L) {
-
-	//ambient
-	vec4 ambientContrib = lightAmb * lightColor;
-
-	//diffuse
-	vec4 diffuseContrib = lightDif * max(dot(N, L), 0.0);
-	diffuseContrib = clamp(diffuseContrib, 0.0, 1.0);
-
-	return ambientContrib + diffuseContrib;
-}
-
-vec4 calcSpecularShading( vec3 N, vec3 L ) {
-
-	//specular
-	vec3 v_dir = normalize(-v);
-
-	vec3 R = normalize(reflect(-L, normalize(N)));
-
-	const float specExp = 10.0;
-	float spec = dot(R, v_dir);
-	spec = (spec > 0.0) ? (1.0 * pow(spec, specularity)) : 0.0;
-
-	vec4 specularContrib = lightSpec * spec;
-	specularContrib = clamp(specularContrib, 0.0, 1.0);
-
-	return specularContrib * lightColor;
-
-}
+in vec3 positionWorldspace;
+in vec3 normalCameraspace;
+in vec3 eyeDirectionCameraspace;
+in vec3 lightDirectionCameraspace;
+	
+out vec4 fragColor;
 
 void main() {
-	
-	v;
-	light_direction;
 
-	frag_color = color;
+	//the distance from frag to light source
+	float lightDistance = length(lightPosition - positionWorldspace );
 
-	frag_color.rgb *= calcShading(normalize(vec3(NM * vec4(normal, 1.0))), light_direction).rgb;
+	//normalized normal of fragment in camera space;
+	vec3 normal = normalize( normalCameraspace );
 
-	frag_color.rgb += calcSpecularShading(normalize(vec3(NM * vec4(normal, 1.0))), light_direction).rgb * shinyness;
+	//direction of the light from frag to light
+	vec3 lightDirection = normalize ( lightDirectionCameraspace );
 
-	// 				frag_color.rgb *= snoise(vec2(color.r, color.b));
+	//cosine of the angle between the normal and the light direction
+	// clamped above 0
+	// - light is at the vertical of the triangle -> 1
+	// - light is perpendicular to the trinalge -> 0
+	// - light is behind the triangle -> 0 
+	float cosTheta = clamp( dot( normal, lightDirection ), 0, 1);
 
+	// from fragment to camera(eye)
+	vec3 eyeDirection = normalize(eyeDirectionCameraspace);
+
+	//direction which the triangle reflects the light \/
+	vec3 reflectionDirection = reflect(-lightDirection, normal);
+
+	//cosine of the angle between eye direction and the reflect direction
+	//  - looking into the reflection -> 1
+	// - looking elsewhere < 1
+	float cosAlpha = clamp( dot(eyeDirection, reflectionDirection), 0, 1);
+
+	/*fragColor = 
+			//ambient color simulates light form other sources
+			ambientColor +
+			//diffuse color, which is the color of the object
+			diffuseColor * lightColor * lightPower * cosTheta / (lightDistance * lightDistance) +
+			// specular : reflective highlight
+			specularColor * lightColor * lightPower * pow(cosAlpha, 5) / (lightDistance * lightDistance);
+*/	
+
+	/*if(cosTheta < 0.01f)
+		fragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
+	else
+		fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);*/
+	fragColor.rgb = ambientColor + 
+					diffuseColor * lightColor * 40 * cosTheta / ( lightDistance * lightDistance) +
+					specularColor * lightColor * 40 * pow(cosAlpha,10) * cosAlpha / (lightDistance * lightDistance);
+			 	//diffuseColor * lightColor  * cosTheta / lightDistance;//vec4(1.0f, 1.0f, 1.0f, 1.0f);
+
+	fragColor.a = alpha;
 }

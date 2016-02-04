@@ -1,32 +1,39 @@
 #version 330 core
 
-//input vertex data, positions and normals
-layout(location = 0) in vec3 vertPositions;
-layout(location = 1) in vec3 normals;
+//Heavily influeced by openGL tutorials for basic shading
+
+// Input vertex data, different for all executions of this shader.
+layout(location = 0) in vec3 vertexPositionModelspace;
+layout(location = 1) in vec3 vertexNormalModelspace;
 
 uniform mat4 MVP;
-uniform mat4 MV;
-uniform mat4 MV_light;
-uniform vec4 lightPos;
-uniform float currTime;
+uniform mat4 V;
+uniform mat4 M;
+uniform vec3 lightPosition;
 
-out vec3 normal;
-out vec3 v;
-out vec3 light_direction;
+out vec3 positionWorldspace;
+out vec3 normalCameraspace;
+out vec3 eyeDirectionCameraspace;
+out vec3 lightDirectionCameraspace;
+
 
 void main() {
 
-	currTime;
+	//output pos of the vertex in clip space: MVP * pos
+	gl_Position = MVP * vec4(vertexPositionModelspace, 1.0);
 
-	vec3 newPos = vertPositions;
+	// position of vertex in worldspace: M * pos
+	positionWorldspace = vec3(M * vec4(vertexPositionModelspace, 1.0));
 
-	gl_Position = MVP  * vec4(newPos, 1.0f);
+	// vector, eyeDirectionCameraspace, that goes from the vertex to the camera in camera space.
+	vec3 vertexPositionCameraspace = vec3(V * M * vec4(vertexPositionModelspace, 1.0));
+	eyeDirectionCameraspace = vec3(0.0, 0.0, 0.0) - vertexPositionCameraspace;
 
-	v = vec3(MV * vec4(newPos, 1.0));
+	// vector from the vertex to the light in camera space, M = identity
+	vec3 lightPositionCameraspace = vec3( V * vec4(lightPosition, 1.0));
+	lightDirectionCameraspace = lightPositionCameraspace + eyeDirectionCameraspace;
 
-	normal = normals;
+	// Normal of the vertex in camera space
+	normalCameraspace = vec3(transpose(inverse(V * M)) * vec4(vertexNormalModelspace, 1.0));
 
-	vec3 l = vec3(MV * lightPos);
-
-	light_direction = normalize(l - v);
 }

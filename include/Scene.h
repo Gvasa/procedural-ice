@@ -2,10 +2,10 @@
 #define SCENE_H
 
 #include "Geometry.h"
-#include "Controls.h"
+#include "Camera.h"
 
 #include <GL/gl.h>
-#include <glm/gtc/matrix_inverse.hpp>
+
 
 class Scene {
 
@@ -25,13 +25,13 @@ public:
 
     void updateCameraZoom(double, double);
     
-    void mouseButtonClick(double x, double y) { control->dragStart(x, y); }
+    void mouseButtonClick(double x, double y) { mCamera->dragStart(x, y); }
     
-    void mouseButtonRelease() { control->dragEnd(); }
+    void mouseButtonRelease() { mCamera->dragEnd(); }
     
     void resetCamera();
 
-    void setLightColor(glm::vec4 c) { mPointLight.color = c; }
+    void setLightColor(glm::vec3 c) { mPointLight.color = c; }
 
     void setLightPos(glm::vec3 p) { mPointLight.position = p; }
 
@@ -46,26 +46,18 @@ private:
 	glm::mat4 mModelMatrix;
 	glm::mat4 mMVP;
 
-	Controls *control = nullptr;
+	Camera * mCamera = nullptr;
 
 	std::vector<glm::mat4> mSceneMatrices;
 
 	std::vector<Geometry *> mGeometries;
 
-
 	struct LightSource {
 		glm::vec3 position;
-		glm::vec4 color;
+		glm::vec3 color;
+		float power;
 	} mPointLight;
 
-	struct cameraHandler {
-        float fov = 45.0f;
-        float aspectRatio = 4.0f / 3.0f;
-        float zoom = 4.0f;
-        glm::quat orientation;
-        glm::mat4 projectionMatrix;
-        glm::mat4 viewMatrix;
-    } mCamera;
 };
 
 #endif // SCENE_H

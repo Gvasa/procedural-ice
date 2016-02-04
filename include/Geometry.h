@@ -4,8 +4,13 @@
 #define GLM_FORCE_RADIANS
 #define I_MVP 0
 #define I_MV 1
-#define I_MV_LIGHT 2
-#define I_NM 3
+#define I_M 2
+#define I_V 3
+#define I_MV_LIGHT 4
+#define I_NM 5
+
+#define PHONGSHADER 0
+#define FROSTSHADER 1
 
 #include <iostream>
 #include <cassert>
@@ -29,9 +34,13 @@ public:
 
     ~Geometry();
 
-    void initialize(glm::vec3, glm::vec4);
+    void initialize(glm::vec3, glm::vec3, glm::vec3);
 
-    void render(std::vector<glm::mat4>, glm::vec3, glm::vec4);
+    void render(std::vector<glm::mat4>, glm::vec3, glm::vec3, float);
+
+    void renderPhong(std::vector<glm::mat4>, glm::vec3, glm::vec3, float);
+
+    void renderFrost(std::vector<glm::mat4>, glm::vec3, glm::vec3);
 
     void loadObject(std::string);
 
@@ -39,17 +48,17 @@ public:
 
     void scale(glm::vec3);
 
-    void setColor(glm::vec4 c) { mMaterial.color = c; }
+    void setColor(glm::vec4 c) { mMaterial.diffuseColor = glm::vec3(c[0], c[1], c[2]); mMaterial.alpha = c[3]; }
 
-    glm::vec4 getColor() { return mMaterial.color; }
+    glm::vec3 getColor() { return mMaterial.diffuseColor; }
 
-    void initializePhongShader();
+    float getAlpha() { return mMaterial.alpha; }
 
-    void initializeFrostShader();
+    void setPhongActive() { shaderProgram = phongShader; }
 
-    void setPhongShader() { shaderProgram = phongShader; }
+    void setFrostActive() { shaderProgram = frostShader; }
 
-    void setFrostShader() { shaderProgram = frostShader; }
+    bool phongActive() { return phongShader == shaderProgram; }
 
 private:
 
@@ -69,33 +78,38 @@ private:
     // Shader indices for Matrices
     GLint MVPLoc;           // MVP matrix
     GLint MVLoc;            // MV matrix
+    GLint MLoc;				// Model Matrix
+    GLint VLoc;				// View Matrix
     GLint MVLightLoc;       // MVLight matrix
     GLint NMLoc;            // NM matrix
+    GLint cameraPosLoc;		// camera position
     GLint lightPosLoc;      // Light position
     GLint lightColLoc;      // Light Color
+    GLint lightPowerLoc;
     GLint colorLoc;         // Color
-    GLint lightAmbLoc;      // Ambient light
-    GLint lightDifLoc;      // Diffuse light
-    GLint lightSpecLoc;      // Specular light
+    GLint ambienceLoc;      // Ambient light
+    GLint diffuseLoc;      // Diffuse light
+    GLint specularLoc;      // Specular light
+    GLint alphaLoc;			// alpha loc
     GLint specularityLoc;   // Specular constant
     GLint shinynessLoc;     // How much specularity (magnitude)
     GLint timeLoc;			// time running program
-    GLint texID;
+    
 
 	std::vector<glm::vec3> mVerts;
 	std::vector<glm::vec2> mUvs;
 	std::vector<glm::vec3> mNormals;
 
 	glm::vec3 mLightPos;
-	glm::vec4 mLightColor;
+	glm::vec3 mLightColor;
 
 	ObjectLoader * mObjectLoader = new ObjectLoader();
 
 	struct Material {
-		glm::vec4 color;
-		glm::vec4 ambient;
-		glm::vec4 diffuse;
-		glm::vec4 specular;
+		glm::vec3 ambientColor;
+		glm::vec3 diffuseColor;
+		glm::vec3 specularColor;
+		float alpha;
 		float specularity;
 		float shinyness;
 	} mMaterial;

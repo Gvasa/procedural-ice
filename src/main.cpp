@@ -62,17 +62,21 @@ int main() {
     
 
     geometry = new Geometry();
-    geometry->loadObject("cube");
+    geometry->loadObject("bunny");
+    //geometry->loadObject("cube");
+    //geometry->translate(glm::vec3(-1.0f, 0.0f, 0.0f));
 
-    geometry2 = new Geometry();
+    /*geometry2 = new Geometry();
     geometry2->loadObject("cube");
     geometry2->scale(glm::vec3(1.001f, 1.001f, 1.001f));
-    geometry2->setColor(glm::vec4(0.76f, 0.5f, 0.4f, 0.5f));
-   
-    scene->addGeometry(geometry);
-    scene->addGeometry(geometry2);
-    scene->initialize();
+    geometry2->setColor(glm::vec4(0.76f, 0.5f, 0.4f, 1.0f));
+    geometry2->translate(glm::vec3(1.0f, 0.0f, 0.0f));
+*/
 
+    scene->addGeometry(geometry);
+    //scene->addGeometry(geometry2);
+    scene->initialize();
+    
       //init nanogui
     if(!initGUI() )
         return false;
@@ -83,21 +87,22 @@ int main() {
     glfwSetScrollCallback(window, mouseScroll);
     glfwSetKeyCallback(window, keyCallback);
     glfwSetCharCallback(window, charCallback);
-
+    
     // render-loop
     do {
         calculateFPS(1.0, windowTitle);
            
         // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+    
         scene->getGeometryAt(currentObj)->setColor(glm::vec4(cWheel->color().r(), cWheel->color().g(), cWheel->color().b(), aSlider->value()));
-        scene->setLightColor(glm::vec4(lWheel->color().r(), lWheel->color().g(), lWheel->color().b(), 1.0f));
+        scene->setLightColor(glm::vec3(lWheel->color().r(), lWheel->color().g(), lWheel->color().b()));
         
         // render scene
         scene->render();
-
+        
         screen->drawWidgets();
+        
 
         // Swap buffers
         glfwSwapBuffers(window);
@@ -163,6 +168,8 @@ bool initGUI() {
     nanogui::Popup * objPopup;
     nanogui::Button * colorBtn;
     nanogui::Button * objBtn;
+    nanogui::Button * phongBtn;
+    nanogui::Button * frostBtn;
 
     screen = new nanogui::Screen();
     screen->initialize(window, true);   
@@ -177,7 +184,7 @@ bool initGUI() {
     gWindow->setLayout(layout);
 
     new nanogui::Label(gWindow, "object", "sans-bold");
-    objPopupBtn = new nanogui::PopupButton(gWindow, "Choose Object");
+    objPopupBtn = new nanogui::PopupButton(gWindow, "Choose Obj");
     objPopupBtn->setFixedSize(Eigen::Vector2i(100, 25));
     objPopup = objPopupBtn->popup();
     objPopup->setLayout(new nanogui::GroupLayout());
@@ -207,27 +214,59 @@ bool initGUI() {
     aSlider = new nanogui::Slider(gWindow);
     aSlider->setValue(1.0f);
 
+    phongBtn = new nanogui::Button(gWindow, "Phong");
+    phongBtn->setFlags(nanogui::Button::RadioButton);
+    phongBtn->setFixedSize(Eigen::Vector2i(100, 20));
+    phongBtn->setChangeCallback([currentObj](bool pushed) {
+        if(pushed) {
+            std::cout << "phong" << std::endl;
+            scene->getGeometryAt(currentObj)->setPhongActive();
+            std::cout << scene->getGeometryAt(currentObj)->phongActive() << std::endl;
+        }
+    });
+    phongBtn->setPushed(true);
 
-    //SET CALLBACKS AFTER CHWHEEL AND SLIDER HAS BEEN INITED!
+    frostBtn = new nanogui::Button(gWindow, "Frost");
+    frostBtn->setFlags(nanogui::Button::RadioButton);
+    frostBtn->setFixedSize(Eigen::Vector2i(100, 20));
+    frostBtn->setChangeCallback([currentObj](bool pushed) {
+        if(pushed) {
+            std::cout << "frost" << std::endl;
+            scene->getGeometryAt(currentObj)->setFrostActive();
+            std::cout << scene->getGeometryAt(currentObj)->phongActive() << std::endl;
+        }
+    });
+    //frostBtn->setPushed(true);
+
+    //SET CALLBACKS AFTER CHWHEEL AND SLIDER HAS BEEN INITED! FULT MEN MAN MÅSTE VÄNTA!
     for(unsigned int i = 0; i < scene->getNumGeometries(); i++) {
         objBtn = new nanogui::Button(objPopup, "Object" + std::to_string(i+1));
         objBtn->setFixedSize(Eigen::Vector2i(100, 25));
 
-        objBtn->setChangeCallback([objBtn, objPopupBtn, i, popupBtn](bool pushed) {
+        objBtn->setChangeCallback([objBtn, objPopupBtn, i, popupBtn, phongBtn, frostBtn](bool pushed) {
             if(pushed) {
                 currentObj = i;
-                glm::vec4 color = scene->getGeometryAt(currentObj)->getColor();
-                cWheel->setColor(nanogui::Color(color[0], color[1], color[2], color[3]));
+                glm::vec3 color = scene->getGeometryAt(currentObj)->getColor();
+                cWheel->setColor(nanogui::Color(color[0], color[1], color[2], 1.0));
                 popupBtn->setBackgroundColor(cWheel->color());
                 aSlider->setValue(color[3]);
                 objPopupBtn->setPushed(false);
+
+                if(scene->getGeometryAt(currentObj)->phongActive()) {
+                    phongBtn->setPushed(true);
+                    frostBtn->setPushed(false);
+                }
+                else {
+                    phongBtn->setPushed(false);
+                    frostBtn->setPushed(true);
+                }
             }
         });
     }
 
     // Light window
     nanogui::Window * lWindow = new nanogui::Window(screen, "Light settings");
-    lWindow->setPosition(Eigen::Vector2i(15, 180));
+    lWindow->setPosition(Eigen::Vector2i(15, 200));
     lWindow->setLayout(layout);
 
     new nanogui::Label(lWindow, "color", "sans-bold");

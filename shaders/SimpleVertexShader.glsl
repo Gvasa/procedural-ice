@@ -4,7 +4,7 @@
 layout(location = 0) in vec3 vertexPosition_modelspace;
 
 uniform mat4 MVP;
-out vec2 UV
+out vec2 UV;
 
 void main(){
 
