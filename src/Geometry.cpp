@@ -84,6 +84,56 @@ void Geometry::initialize(glm::vec3 lightPos, glm::vec3 lightColor, glm::vec3 ca
 		reinterpret_cast<void*>(0)		// array buffer offset
 	);
 
+	///------------ texture specific ---------- //// 
+	/*//Gen Texture!
+	glGenFramebuffers(1, &frostTextureBuffer);
+	glBindFramebuffer(GL_FRAMEBUFFER, frostTextureBuffer);
+
+	// the texture we're going to render to
+	glGenTextures(1, &frostTexture);
+	//bind the newly created texture
+	glBindTexture(GL_TEXTURE_2D, frostTexture);
+
+	//give an empty image to opengl (the last "0");
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 1024, 768, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+
+	//poor filtering needed
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	
+	glGenRenderbuffers(1, &depthrenderBuffer);
+	glBindRenderbuffer(GL_RENDERBUFFER, depthrenderBuffer);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, 1024, 768);
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderBuffer);
+
+	glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, frostTexture, 0);	
+
+	 // Set the list of draw buffers.
+	GLenum DrawBuffers[1] = {GL_COLOR_ATTACHMENT0};
+ 	glDrawBuffers(1, DrawBuffers); // "1" is the size of DrawBuffers
+
+ 	if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+		return;
+
+	// The fullscreen quad's FBO
+	static const GLfloat g_quad_vertex_buffer_data[] = { 
+		-1.0f, -1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		-1.0f,  1.0f, 0.0f,
+		 1.0f, -1.0f, 0.0f,
+		 1.0f,  1.0f, 0.0f,
+	};
+
+	glGenBuffers(1, &quad_vertexbuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(g_quad_vertex_buffer_data), g_quad_vertex_buffer_data, GL_STATIC_DRAW);
+
+	// Create and compile our GLSL program from the shaders
+	quad_programID = LoadShaders( "shaders/Passthrough.vertexshader", "shaders/WobblyTexture.fragmentshader" );
+	texID = glGetUniformLocation(quad_programID, "renderedTexture");
+	timeID = glGetUniformLocation(quad_programID, "time");
+    */
 
 	shaderProgram = phongShader;
 	//shaderProgram = frostShader;
@@ -94,29 +144,52 @@ void Geometry::initialize(glm::vec3 lightPos, glm::vec3 lightColor, glm::vec3 ca
 	
 void Geometry::render(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, glm::vec3 lightColor, float lightPower) {
     
- /*  glUseProgram(shaderTextureProgram);
-	glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-	glViewport(0,0,1024,768); // Render on the whole framebuffer, complete from the lower left corner to the upper right
-*/	
 	mLightPos = lightPos;
  	mLightColor = lightColor;
 
-	if(shaderProgram == phongShader) {
-		renderPhong(sceneMatrices, lightPos, lightColor, lightPower);
-	}
-	else {
-		renderFrost(sceneMatrices, lightPos, lightColor);
-	}
-	//std::cout << " lightColor: " << lightColor[0] << " " << lightColor[1] << " " << lightColor[2] << " " << lightColor[3] << " " << std::endl;
+ 	glBindFramebuffer(GL_FRAMEBUFFER, frostTextureBuffer);
+ 	glViewport(0,0,1024,768);
+
+	renderPhong(sceneMatrices, lightPos, lightColor, lightPower);
+
+	/*glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glViewport(0, 0, 1024, 768);
+
+	glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glUseProgram(quad_programID);
+
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, frostTexture);
+
+	glUniform1i(texID, 0);
+	glUniform1f(timeID, float(glfwGetTime()*10.0f) );
+
+	glEnableVertexAttribArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer);
+
+	glVertexAttribPointer(
+		0,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		0,
+		(void*)0
+	);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6);
+
+	glDisableVertexAttribArray(0);
+*/
 
 
+	
 }
 
 void Geometry::renderPhong(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, glm::vec3 lightColor, float lightPower) {
 
 	 //set which shader to use
-
-
 	glUseProgram(shaderProgram);
 	glEnable( GL_CULL_FACE );
 	glEnable( GL_DEPTH_TEST );
@@ -154,71 +227,13 @@ void Geometry::renderPhong(std::vector<glm::mat4> sceneMatrices, glm::vec3 light
     glBindVertexArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 
 
     glDisable( GL_BLEND );
     glDisable( GL_DEPTH_TEST );
     glDisable( GL_CULL_FACE );
 
-}
-
-
-void Geometry::renderFrost(std::vector<glm::mat4> sceneMatrices, glm::vec3 lightPos, glm::vec3 lightColor) {
-	/*
-
-
-	//set names for tour uniforms, these names has to be the same as in the sahders
-	MVPLoc 			= glGetUniformLocation(frostShader, "MVP");
-	MVLoc 			= glGetUniformLocation(frostShader, "MV");
-	MVLightLoc 		= glGetUniformLocation(frostShader, "MV_light");
-	NMLoc 			= glGetUniformLocation(frostShader, "NM");
-	lightPosLoc 	= glGetUniformLocation(frostShader, "lightPos");
-	lightColLoc 	= glGetUniformLocation(frostShader, "lightColor");
-	colorLoc 		= glGetUniformLocation(frostShader,	 "color");
-	lightAmbLoc 	= glGetUniformLocation(frostShader, "lightAmb");
-	lightDifLoc 	= glGetUniformLocation(frostShader, "lightDif");
-	lightSpecLoc 	= glGetUniformLocation(frostShader, "lightSpec");
-	specularityLoc 	= glGetUniformLocation(frostShader, "specularity");
-	shinynessLoc 	= glGetUniformLocation(frostShader, "shinyness");
-	timeLoc		 	= glGetUniformLocation(frostShader, "currTime");
-	texID   		= glGetUniformLocation(frostShader, "renderedTexture");
-	MVPLoc 			= glGetUniformLocation(frostShader, "MVP");
-	colorLoc 		= glGetUniformLocation(frostShader, "color");
-	 //set which shader to use
-	glUseProgram(shaderProgram);
-	glEnable( GL_BLEND );
-    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-    
-	glUniformMatrix4fv(MVPLoc, 1, GL_FALSE, &sceneMatrices[I_MVP][0][0]);
-	glUniformMatrix4fv(MVLoc, 1, GL_FALSE, &sceneMatrices[I_MV][0][0]);
-	glUniformMatrix4fv(MVLightLoc, 1, GL_FALSE, &sceneMatrices[I_MV_LIGHT][0][0]);
-	glUniformMatrix4fv(NMLoc, 1, GL_FALSE, &sceneMatrices[I_NM][0][0]);
-	glUniform4f(lightPosLoc, mLightPos[0], mLightPos[1], mLightPos[2], 1.0f);
-	glUniform4f(lightColLoc, mLightColor[0], mLightColor[1], mLightColor[2], 1.0f);
-	glUniform4f(colorLoc, mMaterial.color[0], mMaterial.color[1], mMaterial.color[2], mMaterial.color[3]);
-	glUniform4f(lightAmbLoc, mMaterial.ambient[0], mMaterial.ambient[1], mMaterial.ambient[2], mMaterial.ambient[3]);
-	glUniform4f(lightDifLoc, mMaterial.diffuse[0], mMaterial.diffuse[1], mMaterial.diffuse[2], mMaterial.diffuse[3]);
-	glUniform4f(lightSpecLoc, mMaterial.specular[0], mMaterial.specular[1], mMaterial.specular[2], mMaterial.specular[3]);
-	glUniform1f(specularityLoc, mMaterial.specularity);
-	glUniform1f(shinynessLoc, mMaterial.shinyness);
-	glUniform1f(timeLoc, glfwGetTime());
-
-		//rebind buffer data
-	glBindVertexArray(vertexArrayID);
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, mVerts.size() * sizeof(glm::vec3), &mVerts[0], GL_STATIC_DRAW);
-
-  	glBindBuffer(GL_ARRAY_BUFFER, normalBuffer);
-   	glBufferData(GL_ARRAY_BUFFER, mNormals.size() * sizeof(glm::vec3), &mNormals[0], GL_STATIC_DRAW);
-
-    glDrawArrays(GL_TRIANGLES, 0, mVerts.size());
-
-    // Unbind
-    glBindVertexArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glDisableVertexAttribArray(0);
-
-    glDisable( GL_BLEND );*/
 }
 
 void Geometry::loadObject(std::string objPath) {

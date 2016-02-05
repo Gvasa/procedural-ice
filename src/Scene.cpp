@@ -21,7 +21,7 @@ void Scene::initialize() {
 	mCamera = new Camera(glm::vec3(0.0, 0.0, 2.0f));
 
 	//Lightsource parameters    
-    mPointLight.position = glm::vec3(0.0f, 4.0f, 4.0f);
+    mPointLight.position = glm::vec3(0.0f, 6.0f, 6.0f);
     mPointLight.color = glm::vec3(1.0f, 1.0f, 1.0f);
     mPointLight.power = 50.0f;
 

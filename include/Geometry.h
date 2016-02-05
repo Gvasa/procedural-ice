@@ -40,8 +40,6 @@ public:
 
     void renderPhong(std::vector<glm::mat4>, glm::vec3, glm::vec3, float);
 
-    void renderFrost(std::vector<glm::mat4>, glm::vec3, glm::vec3);
-
     void loadObject(std::string);
 
     void translate(glm::vec3);
@@ -67,8 +65,10 @@ private:
     GLuint vertexBuffer;
     GLuint normalBuffer;
     GLuint frameBufferID;
-    GLuint renderedTexture;
-    GLuint depthrenderBufferID;
+    GLuint depthrenderBuffer;
+
+    GLuint frostTextureBuffer;
+    GLuint frostTexture;
 
     GLuint shaderProgram;
     GLuint phongShader;
@@ -94,6 +94,12 @@ private:
     GLint specularityLoc;   // Specular constant
     GLint shinynessLoc;     // How much specularity (magnitude)
     GLint timeLoc;			// time running program
+
+    GLuint quad_programID;
+    GLuint quad_vertexbuffer;
+    GLint texID;
+    GLint timeID;
+
     
 
 	std::vector<glm::vec3> mVerts;

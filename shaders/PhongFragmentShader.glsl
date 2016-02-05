@@ -63,8 +63,8 @@ void main() {
 	else
 		fragColor = vec4(1.0f, 1.0f, 1.0f, 1.0f);*/
 	fragColor.rgb = ambientColor + 
-					diffuseColor * lightColor * 40 * cosTheta / ( lightDistance * lightDistance) +
-					specularColor * lightColor * 40 * pow(cosAlpha,10) * cosAlpha / (lightDistance * lightDistance);
+					diffuseColor * lightColor * lightPower * cosTheta / ( lightDistance * lightDistance) +
+					specularColor * lightColor * lightPower * pow(cosAlpha,10) * cosAlpha / (lightDistance * lightDistance);
 			 	//diffuseColor * lightColor  * cosTheta / lightDistance;//vec4(1.0f, 1.0f, 1.0f, 1.0f);
 
 	fragColor.a = alpha;

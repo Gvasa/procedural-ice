@@ -64,14 +64,7 @@ int main() {
     geometry = new Geometry();
     geometry->loadObject("bunny");
     //geometry->loadObject("cube");
-    //geometry->translate(glm::vec3(-1.0f, 0.0f, 0.0f));
-
-    /*geometry2 = new Geometry();
-    geometry2->loadObject("cube");
-    geometry2->scale(glm::vec3(1.001f, 1.001f, 1.001f));
-    geometry2->setColor(glm::vec4(0.76f, 0.5f, 0.4f, 1.0f));
-    geometry2->translate(glm::vec3(1.0f, 0.0f, 0.0f));
-*/
+    geometry->translate(glm::vec3(.5f, -.5f, 0.0f));
 
     scene->addGeometry(geometry);
     //scene->addGeometry(geometry2);
